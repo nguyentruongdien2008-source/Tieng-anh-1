@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Kiểm tra Toán 30 phút</title>
+
+<style>
+body { font-family: Arial; background:#eef3ff; padding:20px; }
+.box { background:#fff; padding:15px; border-radius:10px; margin-bottom:20px; }
+button { padding:10px; background:#3498db; color:white; border:none; border-radius:6px; cursor:pointer; }
+button:hover { background:#2980b9; }
+.hidden { display:none; }
+#timer { color:red; font-weight:bold; font-size:20px; }
+.q{margin:12px 0}
+</style>
+</head>
+
+<body>
+
+<h1>📘 BÀI KIỂM TRA TOÁN (30 PHÚT)</h1>
+<h3>👩‍🏫 Giáo viên: Phạm Thị Ngần</h3>
+
+<!-- LOGIN -->
+<div class="box" id="loginBox">
+<select id="studentName">
+<option value="">-- Chọn học sinh --</option>
+<option>Nguyễn Yến</option>
+<option>Ninh Yến</option>
+<option>Ngọc</option>
+<option>Bảo</option>
+<option>Hân</option>
+<option>Khánh</option>
+<option>Tuấn</option>
+<option>Bảo An</option>
+<option>Bảo Ngọc</option>
+<option>Long</option>
+<option>Hằng</option>
+</select><br><br>
+
+<button onclick="startTest()">▶️ Vào làm bài</button>
+<button onclick="showTeacher()">👩‍🏫 Giáo viên xem điểm</button>
+</div>
+
+<!-- TEST -->
+<div id="testBox" class="hidden">
+⏱ Thời gian còn lại: <span id="timer">30:00</span>
+<div id="quiz"></div>
+<button onclick="submitTest()">📩 Nộp bài</button>
+<h2 id="result"></h2>
+</div>
+
+<!-- GIÁO VIÊN -->
+<div id="teacherBox" class="hidden box">
+<h2>📊 Bảng kết quả</h2>
+<table border="1" width="100%">
+<thead>
+<tr><th>Học sinh</th><th>Lần</th><th>Điểm</th><th>Thời gian</th></tr>
+</thead>
+<tbody id="scoreTable"></tbody>
+</table>
+<br>
+<button onclick="backHome()">⬅️ Quay lại</button>
+</div>
+
+<script>
+
+let currentStudent="";
+let time=30*60;
+let timer;
+
+/* ====== DỮ LIỆU 30 CÂU ====== */
+
+const quizData=[
+
+{type:"input",q:"Câu 1: 10 - 3 = ?",d:"7"},
+{type:"mc",q:"Câu 2: The number 25 is read as:",a:["Twenty","Two years","Two","Twenty-five"],d:3},
+{type:"mc",q:"Câu 3: 🐶 + 🐶🐶🐶 =",a:["3","4","5","2"],d:1},
+{type:"mc",q:"Câu 4: 4 + 1 =",a:["10 - 5=5","4 + 1 = 5","5 + 1 = 6","4 - 1 = 3"],d:1},
+{type:"mc",q:"Câu 5: 5 - 3 =",a:["1","4","2","3"],d:2},
+{type:"input",q:"Câu 6: 5 - 2 =",d:"3"},
+{type:"input",q:"Câu 7: 4 + 5 =",d:"9"},
+{type:"input",q:"Câu 8: 1 + 4 =",d:"5"},
+{type:"mc",q:"Câu 9: 1 + 1 =",a:["1","2","3","4"],d:1},
+{type:"mc",q:"Câu 10: 3 - 2 =",a:["1","2"],d:0},
+{type:"mc",q:"Câu 11: 9 - 4 … 8 - 3",a:[">","<","="],d:2},
+{type:"mc",q:"Câu 12: Ninety-eight =",a:["97","79","89","98"],d:3},
+{type:"mc",q:"Câu 13: 3 + 3 =",a:["6","5","4","3"],d:0},
+{type:"mc",q:"Câu 14: 50 blocks =",a:["50","70","40","60"],d:0},
+{type:"mc",q:"Câu 15: 89 is read as:",a:["Eighteen-nine","Eight nine","Eighty-nine","Eighty ninety"],d:2},
+{type:"mc",q:"Câu 16: 1 + 2 =",a:["2","4","3","6"],d:2},
+{type:"input",q:"Câu 17: 6 - ? = 4",d:"2"},
+{type:"input",q:"Câu 18: 3 + 3 =",d:"6"},
+{type:"mc",q:"Câu 19: 73 is read as:",a:["Thirty-seven","Seventy-three","Three seven","Seven three"],d:1},
+{type:"mc",q:"Câu 20: Number before 24?",a:["25","22","26","23"],d:3},
+{type:"mc",q:"Câu 21: 3 + 5 =",a:["8","9","6","7"],d:0},
+{type:"mc",q:"Câu 22: 0 + 3 =",a:["5","3","0","4"],d:1},
+{type:"input",q:"Câu 23: 4 + 5 =",d:"9"},
+{type:"mc",q:"Câu 24: 46 is read as:",a:["Six","Forty six","Four","Four and six"],d:1},
+{type:"input",q:"Câu 25: 5 - 3 =",d:"2"},
+{type:"input",q:"Câu 26: 1 - 1 =",d:"0"},
+{type:"input",q:"Câu 27: 2 + 5 =",d:"7"},
+{type:"input",q:"Câu 28: 10 - 1 - 2 =",d:"7"},
+{type:"mc",q:"Câu 29: 2 + 2 =",a:["4","3","5","6"],d:0},
+{type:"input",q:"Câu 30: 2 + 7 =",d:"9"}
+
+];
+
+/* ====== TẠO CÂU HỎI ====== */
+
+quizData.forEach((q,i)=>{
+let html=`<div class="q"><b>${q.q}</b><br>`;
+if(q.type==="mc"){
+q.a.forEach((ans,j)=>{
+html+=`<label><input type="radio" name="q${i}" value="${j}"> ${ans}</label><br>`;
+});
+}else{
+html+=`<input id="q${i}" placeholder="Nhập đáp án">`;
+}
+html+="</div>";
+quiz.innerHTML+=html;
+});
+
+/* ====== TIMER ====== */
+
+function startTest(){
+let name=document.getElementById("studentName").value;
+if(!name){alert("Chọn học sinh!");return;}
+currentStudent=name;
+loginBox.classList.add("hidden");
+testBox.classList.remove("hidden");
+
+timer=setInterval(()=>{
+let m=Math.floor(time/60),s=time%60;
+document.getElementById("timer").innerText=
+m+":"+(s<10?"0":"")+s;
+time--;
+if(time<0){submitTest();}
+},1000);
+}
+
+/* ====== CHẤM ĐIỂM ====== */
+
+function submitTest(){
+clearInterval(timer);
+let score=0;
+
+quizData.forEach((q,i)=>{
+if(q.type==="mc"){
+let choose=document.querySelector(`input[name="q${i}"]:checked`);
+if(choose && Number(choose.value)===q.d)score++;
+}else{
+let ans=document.getElementById("q"+i).value.trim();
+if(ans===q.d)score++;
+}
+});
+
+let data=JSON.parse(localStorage.getItem("scores")||"[]");
+data.push({
+name:currentStudent,
+score:score+"/30",
+time:new Date().toLocaleTimeString()
+});
+localStorage.setItem("scores",JSON.stringify(data));
+
+result.innerText="🎉 "+currentStudent+" đạt "+score+"/30 điểm";
+}
+
+/* ====== GIÁO VIÊN ====== */
+
+function showTeacher(){
+loginBox.classList.add("hidden");
+teacherBox.classList.remove("hidden");
+
+let data=JSON.parse(localStorage.getItem("scores")||"[]");
+let html="";
+data.forEach((r,i)=>{
+html+=`<tr><td>${r.name}</td><td>${i+1}</td><td>${r.score}</td><td>${r.time}</td></tr>`;
+});
+scoreTable.innerHTML=html;
+}
+
+function backHome(){
+teacherBox.classList.add("hidden");
+loginBox.classList.remove("hidden");
+}
+
+</script>
+</body>
+</html>
